@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/toutiao_backend.iml" filepath="$PROJECT_DIR$/.idea/toutiao_backend.iml" />
+      <module fileurl="file://D:/ithema/03-前端项目代码/xwzx-news/.idea/xwzx-news.iml" filepath="D:/ithema/03-前端项目代码/xwzx-news/.idea/xwzx-news.iml" />
     </modules>
   </component>
 </project>

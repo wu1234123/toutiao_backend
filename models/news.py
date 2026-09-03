@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from django.template.defaultfilters import title
+
 from sqlalchemy import Index, ForeignKey
 from sqlalchemy import DateTime,Text
 from sqlalchemy.orm import DeclarativeBase,Mapped,mapped_column

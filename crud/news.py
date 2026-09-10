@@ -1,13 +1,29 @@
 from unittest import result
 
+from fastapi.encoders import jsonable_encoder
+
+from cache.news_cache import get_cached_categories, set_cache_categories
 from models.news import Category,News
 from sqlalchemy import select,func,update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 async def get_categories(db:AsyncSession,skip:int=0,limit:int=100):
+
+    cached_categories=await get_cached_categories()
+    if cached_categories:
+        return cached_categories
+
+
     stmt=select(Category).offset(skip).limit(limit)
     result=await db.execute(stmt)
-    return result.scalars().all()
+    categories = result.scalars().all()
+
+    if categories:
+        categories=jsonable_encoder(categories)
+        await set_cache_categories(categories)
+
+    return categories
+
 
 async def get_news_list(db:AsyncSession,category_id:int,skip:int=0,limit:int=10):
     stmt=select(News).where(News.category_id==category_id).offset(skip).limit(limit)

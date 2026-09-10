@@ -1,0 +1,65 @@
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import HTTPException, status
+
+from models.users import User
+from config.db_conf import get_db
+from utils.auth import get_current_user
+from utils.response import success_response
+from crud import history
+from schemas.history import HistoryAddRequest, HistoryListResponse
+
+
+router = APIRouter(prefix="/api/history", tags=["history"])
+
+
+@router.post("/add")
+async def add_history(
+        data: HistoryAddRequest,
+        user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db)
+):
+    result = await history.add_news_history(db, user.id, data.news_id)
+    return success_response(message="历史记录添加成功")
+
+
+@router.get("/list")
+async def get_history_list(
+        page: int = Query(1, ge=1),
+        page_size: int = Query(10, ge=1, le=100, alias="pageSize"),
+        user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db)
+):
+    rows, total = await history.get_news_history(db, user.id, page, page_size)
+    history_list = [{
+        **{k: v for k, v in news.__dict__.items() if not k.startswith("_")},
+        "publishTime": news.publish_time,
+        "viewTime": history_time,
+        "history_time": history_time,
+        "history_id": history_id
+    } for news, history_time, history_id in rows]
+    has_more = total > page * page_size
+    data = HistoryListResponse(list=history_list, total=total, hasMore=has_more)
+    return success_response(message="获取历史记录成功", data=data)
+
+# 前端删除单条历史调用的是 DELETE /api/history/delete/{newsId}（路径参数）
+@router.delete("/delete/{news_id}")
+async def remove_history(
+        news_id:int,
+        user:User=Depends(get_current_user),
+        db:AsyncSession=Depends(get_db)
+):
+    result=await history.remove_news_history(db,user.id,news_id)
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="历史记录不存在")
+    return success_response(message="删除历史记录成功")
+
+
+# 前端"清空"按钮调用的是 DELETE /api/history/clear
+@router.delete("/clear")
+async def clear_history(
+        user:User=Depends(get_current_user),
+        db:AsyncSession=Depends(get_db)
+):
+    count=await history.remove_all_history(db,user.id)
+    return success_response(message=f"清空历史记录{count}条")

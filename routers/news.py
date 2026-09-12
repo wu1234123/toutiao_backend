@@ -2,7 +2,6 @@
 from fastapi import HTTPException
 from fastapi import APIRouter,Depends,Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlparse.utils import offset
 
 from crud import news
 from config.db_conf import get_db

@@ -1,11 +1,17 @@
-from unittest import result
-
 from fastapi.encoders import jsonable_encoder
 
-from cache.news_cache import get_cached_categories, set_cache_categories
-from models.news import Category,News
-from sqlalchemy import select,func,update
+from cache.news_cache import (
+    get_cached_categories,
+    set_cache_categories,
+    get_cache_news_list,
+    set_cache_news_list,
+)
+from models.news import Category, News
+from sqlalchemy import select, func, update
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from schemas.base import NewsItemBase
+
 
 async def get_categories(db:AsyncSession,skip:int=0,limit:int=100):
 
@@ -26,9 +32,19 @@ async def get_categories(db:AsyncSession,skip:int=0,limit:int=100):
 
 
 async def get_news_list(db:AsyncSession,category_id:int,skip:int=0,limit:int=10):
+    page=skip//limit + 1
+    cached_list=await get_cache_news_list(category_id,page,limit)
+    if cached_list:
+        return [News(**item) for item in cached_list]
+
     stmt=select(News).where(News.category_id==category_id).offset(skip).limit(limit)
     result=await db.execute(stmt)
-    return result.scalars().all()
+    news_list=result.scalars().all()
+    if news_list:
+        news_data=[NewsItemBase.model_validate(item).model_dump(mode="json",by_alias=False) for item in news_list]
+        await set_cache_news_list(category_id,page,limit,news_data)
+
+    return news_list
 
 async def get_news_count(db:AsyncSession,category_id:int):
     stmt=select(func.count(News.id)).where(News.category_id==category_id)
